@@ -2,12 +2,17 @@
 # It require to start in static environment without ane moving object. 
 # Program compare video from camera with the first static frame captured from it. 
 
-import cv2
+import cv2, pandas
+from datetime import datetime
 
 first_frame = None
+move_status = [None, None]
+date_and_time = []
+df = pandas.DataFrame(columns=["Start Moving", "End Moving"])
 camera = cv2.VideoCapture(0)
 
 while True:
+    is_moving = 0
     delta_frame = None
     check, frame = camera.read()
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -25,16 +30,30 @@ while True:
     for contour in cnts: 
         if cv2.contourArea(contour) < 1000:
             continue
+        is_moving = 1
         (x, y, w, h) = cv2.boundingRect(contour)
         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
 
+    move_status.append(is_moving)
+    if move_status[-1] == 1 and move_status[-2] == 0:
+        date_and_time.append(datetime.now())
+    if move_status[-1] == 0 and move_status[-2] == 1: 
+        date_and_time.append(datetime.now())
+    # print(is_moving)
     cv2.imshow("Video", frame)
     # for calibrating purposes
     # cv2.imshow("Delta", delta_frame)
     # cv2.imshow("Treshold", treshold_frame)
     key = cv2.waitKey(1)
     if key == ord('q'):
+        if is_moving == 1: 
+            date_and_time.append(datetime.now())
         break
 
 cv2.destroyAllWindows    
 camera.release()
+
+for i in range(0, len(date_and_time), 2):
+    df = df.append({"Start Moving": date_and_time[i], "End Moving": date_and_time[i+1]}, ignore_index=True)
+
+df.to_csv("times.csv")
