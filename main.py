@@ -35,6 +35,8 @@ while True:
         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
 
     move_status.append(is_moving)
+    move_status = move_status[-2:]
+    
     if move_status[-1] == 1 and move_status[-2] == 0:
         date_and_time.append(datetime.now())
     if move_status[-1] == 0 and move_status[-2] == 1: 
