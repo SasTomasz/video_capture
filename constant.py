@@ -1,0 +1,2 @@
+START_MOVE = 1
+STOP_MOVE = 0

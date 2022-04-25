@@ -3,15 +3,45 @@
 # Program compare video from camera with the first static frame captured from it. 
 
 import cv2
+import datetime as dt
+import pandas as pd
+import os
+import constant
 
 first_frame = None
 camera = cv2.VideoCapture(0)
+move_started = False
+detect_move = False
+
+"""
+Save date and time of start and stop moving to csv file
+"""
+def save_datetime(mode):
+    date_time = dt.datetime.now()
+    print(date_time)
+    
+    if not os.path.isfile("show_time.csv"):
+        f = open("show_time.csv", "a")
+        f.write("Move started,Move stoped")
+        f.close()
+
+    df = pd.read_csv("show_time.csv")
+
+    match mode:
+        case constant.START_MOVE:
+            df = df.append({"Move started" : date_time}, ignore_index = True)
+            df.to_csv("show_time.csv", index = False)
+
+        case constant.STOP_MOVE:
+            df.iloc[len(df) - 1, 1] = date_time
+            df.to_csv("show_time.csv", index = False)
 
 while True:
     delta_frame = None
     check, frame = camera.read()
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray_frame = cv2.GaussianBlur(gray_frame, (5, 5), 0 )
+    detect_move = False
 
     if first_frame is None: 
         first_frame = gray_frame
@@ -25,8 +55,19 @@ while True:
     for contour in cnts: 
         if cv2.contourArea(contour) < 1000:
             continue
-        (x, y, w, h) = cv2.boundingRect(contour)
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
+        else: 
+            (x, y, w, h) = cv2.boundingRect(contour)
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
+            if move_started == False:
+                move_started = True
+                print("Move started")
+                save_datetime(constant.START_MOVE)
+            detect_move = True
+        
+    if move_started == True and detect_move == False:
+            move_started = False
+            print("Move stoped")
+            save_datetime(constant.STOP_MOVE)
 
     cv2.imshow("Video", frame)
     # for calibrating purposes
